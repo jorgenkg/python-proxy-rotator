@@ -7,11 +7,10 @@ This is a multithreaded, man-in-the-middle proxy rotator acting as a relay for H
 
 ##It's not magic
 ***
-This expamle describes the life of a HTTP GET request.
+This expamle describes the life of a HTTP GET/POST request.
 
 ![How it works graphics](https://github.com/jorgenkg/python-proxy-rotator/blob/master/magic.png?raw=true)
 
-The server recieves a 
 ##Requirements
 ***
 1. `Python 2.5 +`
