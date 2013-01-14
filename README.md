@@ -42,5 +42,5 @@ Change directory to the download destination and run:
 
 ##Kudos
 ***
-This project is inspired by [pymiproxy](https://github.com/allfro/pymiproxy).
+This project is inspired by [pymiproxy](https://github.com/allfro/pymiproxy).  
 This project contains the `CertificateAuthority()` defined in `pymiproxy`
