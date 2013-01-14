@@ -1,9 +1,15 @@
 # Python Proxy Rotator
-####An automatic python proxy rotator.
+####An automatic python proxy rotator. (Supports SSL proxies)
 
 ##Introduction
 ***
-This is a multithreaded, man-in-the-middle proxy rotator acting as a relay for HTTP-requests. The goal is to make it harder to track you as a web user.  
+This is a multithreaded, man-in-the-middle proxy rotator acting as a relay for HTTP-requests. The goal is to make it harder to track you as a web user.
+
+###Not only is it unnecessarily overkill, but it is also really cool. 
+
+A single webpage includes mulitple files: css, images, scripts and so on. This server creates a news request for each of those objects through a new proxy, making it appear as your request acctually originates for mulitple clients (and potentially multiple countries). By using non-transparent, ssl proxies it will be a tough nut to crack if someone decided to listen to you outgoing data traffic.
+
+> planned feature: socks4+ socks5 support
 
 ##It's not magic
 ***
