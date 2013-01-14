@@ -1,6 +1,14 @@
 # Python Proxy Rotator
 ####An automatic python proxy rotator. (Supports SSL proxies)
 
+##Currently known bugs
+***
+* Has currently a static set of proxies and lacks an efficient way to check if the remote proxy server is alive.
+* Outputs a lot of ERROR 403 - Forbidden responses.
+* Sometimes CSS documents doesn't load properly on the first tries (probably due to the threaded requests and `asynx="async"` tag in the HTML page.
+* Sometimes the server thinks we're not using http/https all of a sudden - and responds with a `Unknown scheme error`.
+* Due to the fact that the proxy isn't tested for "livelyness" a valid request may be returned false, even with a retry.
+
 ##Introduction
 ***
 This is a multithreaded, man-in-the-middle proxy rotator acting as a relay for HTTP-requests. The goal is to make it harder to track you as a web user.
