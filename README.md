@@ -7,7 +7,7 @@
 * Outputs a lot of `ERROR 403 - Forbidden` responses.
 * Sometimes CSS documents doesn't load properly on the first tries (probably due to the threaded requests and `asynx="async"` tag in the HTML page.
 * Sometimes the server thinks we're not using http/https all of a sudden - and responds with a `Unknown scheme error`.
-* Due to the fact that the proxy isn't tested for "livelyness" a valid request may be returned as a `503 - Timeout`.
+* Due to the fact that the proxy isn't tested for "liveliness" a valid request may be returned as a `503 - Timeout`.
 
 ##Introduction
 ***
@@ -15,13 +15,13 @@ This is a multithreaded, man-in-the-middle proxy rotator acting as a relay for H
 
 ###Not only is it unnecessarily overkill, but it is also really cool. 
 
-A single webpage includes mulitple files: css, images, scripts and so on. This server creates a news request for each of those objects through a new proxy, making it appear as your request acctually originates for mulitple clients (and potentially multiple countries). By using non-transparent, ssl proxies it will be a tough nut to crack if someone decided to listen to you outgoing data traffic.
+A single webpage includes mulitple files: css, images, scripts and so on. This server creates a news request for each of those objects through a new proxy, making it appear as your request acctually originates for mulitple clients (and potentially multiple countries). By using non-transparent, SSL proxies it will be a tough nut to crack if someone decided to listen to you outgoing data traffic.
 
-> planned feature: socks4+ socks5 support
+> Planned feature: socks4+ socks5 support
 
 ##It's not magic
 ***
-This expamle describes the life of a HTTP GET/POST request.
+This example describes the life of a HTTP GET/POST request.
 
 ![How it works graphics](https://github.com/jorgenkg/python-proxy-rotator/blob/master/magic.png?raw=true)
 
@@ -34,7 +34,7 @@ This expamle describes the life of a HTTP GET/POST request.
 
 	`$ pip install SocksiPy`
 	
-## Useage
+## Usage
 ***
 Change directory to the download destination and run:  
 `$ python PipeServer.py`
@@ -43,3 +43,4 @@ Change directory to the download destination and run:
 ##Kudos
 ***
 This project is inspired by [pymiproxy](https://github.com/allfro/pymiproxy).
+This project contains the `CertificateAuthority()` defined in `pymiproxy`
