@@ -9,3 +9,7 @@ Thumbs.db
 
 #sources
 .pyc
+
+#eclipse
+.project
+.pydevproject
