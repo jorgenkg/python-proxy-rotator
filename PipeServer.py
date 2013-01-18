@@ -13,7 +13,8 @@ from OpenSSL.crypto import (X509Extension, X509, dump_privatekey, dump_certifica
                             PKey, TYPE_RSA, X509Req)
 from OpenSSL.SSL import FILETYPE_PEM
 
-import socks
+from socket import socket
+from ProxySocket import ProxySocket
 debug = False
 
 class CertificateAuthority(object):
@@ -101,64 +102,6 @@ class CertificateAuthority(object):
         return self._serial
 
 
-
-
-
-import threading, collections
-class ProxyFetcher():
-    http_proxies = collections.deque([
-                    (socks.PROXY_TYPE_HTTP, "216.6.146.14", 8080),
-                    (socks.PROXY_TYPE_HTTP, "100.42.231.109", 8080),
-                    (socks.PROXY_TYPE_HTTP, "66.35.68.146", 3128),
-                    (socks.PROXY_TYPE_HTTP, "63.141.249.37", 3128),
-                    (socks.PROXY_TYPE_HTTP, "63.141.249.37", 8080),
-                    (socks.PROXY_TYPE_HTTP, "198.154.114.100", 8080),
-                    (socks.PROXY_TYPE_HTTP, "198.23.128.136", 3128),
-                    (socks.PROXY_TYPE_HTTP, "198.154.114.118", 8080),
-                    (socks.PROXY_TYPE_HTTP, "66.35.68.145", 3128),
-                    (socks.PROXY_TYPE_HTTP, "198.24.131.80", 3128),
-                    (socks.PROXY_TYPE_HTTP, "198.23.128.126", 3128),
-                    (socks.PROXY_TYPE_HTTP, "76.74.219.138", 3128),
-                    (socks.PROXY_TYPE_HTTP, "198.144.176.54", 3128),
-                    (socks.PROXY_TYPE_HTTP, "74.221.211.117", 3128),
-                    (socks.PROXY_TYPE_HTTP, "37.98.226.66", 8080),
-                    (socks.PROXY_TYPE_HTTP, "216.244.71.143", 3128),
-                    (socks.PROXY_TYPE_HTTP, "37.143.13.194", 8080)
-                ])
-    http_sslproxies = collections.deque([
-                    (socks.PROXY_TYPE_HTTP, "65.79.56.15", 80),
-                    (socks.PROXY_TYPE_HTTP, "82.137.247.134", 80),
-                    (socks.PROXY_TYPE_HTTP, "146.12.3.6", 80),
-                    (socks.PROXY_TYPE_HTTP, "148.233.159.58", 3128),
-                    (socks.PROXY_TYPE_HTTP, "148.233.229.236", 80),
-                    (socks.PROXY_TYPE_HTTP, "163.28.80.40", 3128),
-                    (socks.PROXY_TYPE_HTTP, "165.228.128.11", 80)
-                    
-                ])
-    
-    def __init__(self):
-        self.lock = threading.Lock()
-        
-    def get_proxy(self):
-        self.lock.acquire()
-        
-        random_proxy = self.http_proxies[0]
-        self.http_proxies.rotate(1)
-        
-        self.lock.release()
-        return random_proxy
-    
-    def get_sslproxy(self):
-        self.lock.acquire()
-        
-        random_proxy = self.http_sslproxies[0]
-        self.http_sslproxies.rotate(1)
-        
-        self.lock.release()
-        return random_proxy
-
-proxy_fetcher = ProxyFetcher()
-
 class ProxiedRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
@@ -170,7 +113,7 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
             self.hostname, self.port = self.path.split(':')
         else:
             u = urlparse(self.path)
-            if u.scheme != 'http': raise Exception('Unknown scheme %s' % repr(u.scheme))
+            if u.scheme != 'http': print 'Unknown scheme %s' % repr(u.scheme)
             self.hostname = u.hostname
             self.port = u.port or 80
             self.path = urlunparse( 
@@ -184,19 +127,15 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
                                 )
                             )
         # Create a pipe to the remote server
-        self._pipe_socket = socks.socksocket()
-        self._pipe_socket.settimeout(10)
-        self._http_proxy = proxy_fetcher.get_sslproxy() if self.connect_through_ssl else proxy_fetcher.get_proxy()
-        self._pipe_socket.setproxy(*self._http_proxy)
-        self._pipe_socket.connect(
-                            (self.hostname, int(self.port) )
-                        )
+        self._pipe_socket = ProxySocket()
+        self._pipe_socket.connect( (self.hostname, int(self.port) ))
 
         # Wrap socket if SSL is required
         if self.connect_through_ssl:
             self._pipe_socket = wrap_socket(self._pipe_socket)
 
     def do_CONNECT(self):
+        print "\nDO CONNECT\n"
         self.connect_through_ssl = True
         try:
             self._connect_to_host()
@@ -220,16 +159,11 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
         if not self.connect_through_ssl:
             try:
                 self._connect_to_host()
-            except socks.HTTPError, e:
-                if retried: self.send_error(e.value[0], e.value[1])
-                else: self.do_RELAY(True)
-                return
             except TimeoutException, e:
                 if retried: self.send_error(504, "Gateway Timeout")
                 else: self.do_RELAY(True)
                 return
             except Exception, e:
-                print type(e)
                 self.send_error(500, str(e))
                 return
 
@@ -260,7 +194,7 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
 
 
 class PipeServer(HTTPServer):
-    def __init__(self, proxy_fetcher, server_address=('', 8080), ssl_certificate = 'ca.pem'):
+    def __init__(self, server_address=('', 8080), ssl_certificate = 'ca.pem'):
         HTTPServer.__init__(self, 
                         server_address, 
                         ProxiedRequestHandler,
@@ -272,10 +206,10 @@ class ThreadedPipeServer(ThreadingMixIn, PipeServer):
     pass
             
 if __name__ == '__main__':
-    proxy = ThreadedPipeServer(ProxyFetcher())
+    proxy = ThreadedPipeServer()
     try:
         print "Server is running."
         proxy.serve_forever()
     except KeyboardInterrupt:
-        print "\nServer is shuting down."
+        print "\nServer is shuting down. \nPlease wait for the called requests to terminate."
         proxy.server_close()
