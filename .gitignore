@@ -9,6 +9,7 @@ Thumbs.db
 
 #sources
 .pyc
+.pem
 
 #eclipse
 .project
