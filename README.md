@@ -10,9 +10,11 @@ This is a multithreaded, man-in-the-middle proxy rotator acting as a relay for H
 
 #####Not only is it unnecessarily overkill, but it is also really cool. 
 
-A single webpage includes mulitple files: css, images, scripts and so on. This server creates a news request for each of those objects through a new proxy, making it appear as your request acctually originates for mulitple clients (and potentially multiple countries). By using non-transparent, SSL proxies it will be a tough nut to crack if someone decided to listen to you outgoing data traffic.
+A single webpage includes mulitple files: css, images, scripts and so on. This server creates a news request for each of those objects through a new proxy, making it appear as your request acctually originates for mulitple clients (and potentially multiple countries). By using non-transparent, SSL proxies it will be a tough nut to crack if someone decided to listen to you outgoing data traffic.  
 
-> Planned feature: SOCKS4 and SOCKS5 support
+#####Planned features: 
+* SOCKS4 and SOCKS5 support
+* SMTP, FTP support
 
 ##It's not magic
 This example describes the life of a HTTP GET/POST request.
