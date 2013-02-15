@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from urlparse import urlparse, urlunparse, ParseResult
-from SocketServer import ThreadingMixIn
+from SocketServer import ForkingMixIn
 from httplib import HTTPResponse
 from tempfile import gettempdir
 from os import path, listdir
@@ -14,7 +14,7 @@ from OpenSSL.crypto import (X509Extension, X509, dump_privatekey, dump_certifica
 from OpenSSL.SSL import FILETYPE_PEM
 
 from socket import socket
-from ProxySocket import ProxySocket
+from proxy_socket import ProxySocket
 debug = False
 
 class CertificateAuthority(object):
@@ -127,15 +127,14 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
                                 )
                             )
         # Create a pipe to the remote server
-        self._pipe_socket = ProxySocket()
-        self._pipe_socket.connect( (self.hostname, int(self.port) ))
+        self._pipe_socket = ProxySocket( use_ssl=self.connect_through_ssl )
+        self._pipe_socket.connect( (self.hostname, int(self.port)) )
 
         # Wrap socket if SSL is required
         if self.connect_through_ssl:
             self._pipe_socket = wrap_socket(self._pipe_socket)
 
     def do_CONNECT(self):
-        print "\nDO CONNECT\n"
         self.connect_through_ssl = True
         try:
             self._connect_to_host()
@@ -144,7 +143,7 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
             self.wrap_socket(
                             self.request, 
                             server_side = True, 
-                            certfile = self.server.ca[ self.path.split(':')[0] ]
+                            certfile = 'ca.pem'
                             )
         except Exception, e:
             self.send_error(500, str(e))
@@ -183,8 +182,10 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
         http_response.close()
         self._pipe_socket.close()
 
-
-        self.request.sendall(response)
+        try:
+            self.request.sendall(response)
+        except Exception, e:
+            print e
 
     def do_GET(self):
         self.do_RELAY()
@@ -202,7 +203,7 @@ class PipeServer(HTTPServer):
         self.ca = CertificateAuthority(ssl_certificate)
 
 
-class ThreadedPipeServer(ThreadingMixIn, PipeServer):
+class ThreadedPipeServer(ForkingMixIn, PipeServer):
     pass
             
 if __name__ == '__main__':
