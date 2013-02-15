@@ -3,7 +3,7 @@
 
 ##Currently known bugs
 * Has currently a static set of proxies and lacks an efficient way to check if the remote proxy server is alive.
-* Sometimes CSS documents doesn't load properly on the first tries (probably due to the threaded requests and `asynx="async"` tag in the HTML page.
+* Sometimes CSS documents doesn't load properly on the first tries (probably due to the threaded requests and `async="async"` tag in the HTML page.
 
 ##Introduction
 This is a multithreaded, man-in-the-middle proxy rotator acting as a relay for HTTP-requests. The goal is to make it harder to track you as a web user.
@@ -31,6 +31,7 @@ This example describes the life of a HTTP GET/POST request.
 Change directory to the download destination and run:  
 `$ python proxy_server.py`
 
+Set `127.0.0.1:8080` as the proxy in your favourite browser.
 
 ##Kudos
 This project is inspired by [pymiproxy](https://github.com/allfro/pymiproxy).  
