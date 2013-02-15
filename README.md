@@ -29,7 +29,7 @@ This example describes the life of a HTTP GET/POST request.
 	
 ## Usage
 Change directory to the download destination and run:  
-`$ python PipeServer.py`
+`$ python proxy_server.py`
 
 
 ##Kudos
