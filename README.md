@@ -16,6 +16,15 @@ A single webpage includes mulitple files: css, images, scripts and so on. This s
 * SOCKS4 and SOCKS5 support
 * SMTP, FTP support
 
+####Current features: 
+* FTP support
+* HTTP & HTTPS support
+* Proxy chaining (technically limited to only HTTPS proxies)
+* Accepts globally trusted certificates
+* Correctly handles SSL
+* Ability to act as a SSL Certificate Authority (for the locally recieved requests)
+* Lets the browser/user decide whether to use HTTPS or not. This is a necessary feature due to the fact that not all servers support SSL encryption. And there is no reason to encrypt the data yourself, if your HTTPS proxy decrypts the data before it reaches the goal.
+
 ##It's not magic
 This example describes the life of a HTTP GET/POST request.
 
