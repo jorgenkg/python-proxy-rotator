@@ -14,7 +14,7 @@ A single webpage includes mulitple files: css, images, scripts and so on. This s
 
 #####Planned features: 
 * SOCKS4 and SOCKS5 support
-* SMTP, FTP support
+* SMTP support
 
 ####Current features: 
 * FTP support
