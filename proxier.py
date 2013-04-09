@@ -1,80 +1,119 @@
-import threading, collections, sys, socket
-
+import threading, collections, sys, socket, os, select, threading
+from tempfile import gettempdir
 
 class ProxyManager():
     
-    def __init__(self):
+    def __init__(self, check_for_tmp):
         self.lock = threading.Lock()
+        self.killer = threading.Lock()
         self.is_connected = False
         self.http_proxies = collections.deque()
         self.https_proxies = collections.deque()
+        
         # load from file
-        self._load_proxies()
+        threading.Thread( target=self._load_proxies, args=(self.lock,self.killer,check_for_tmp)).start()
     
     def _print_progress(self, fraction):
         size = 50
         progress = int(round(size * fraction))
         string = "="*progress+" "*int(size-progress)
         
-        if progress == size: sys.stdout.write("\r[%s]\n" % string)
-        else: sys.stdout.write("\r[%s]" % string)
+        if fraction == 1: sys.stdout.write("\r[%s] Done!       \n" % string)
+        else: sys.stdout.write("\r[%s] Loading..." % string)
         sys.stdout.flush()
     
-    def _load_proxies(self):
-        print 'Check for proxy liveliness...'
+    def _load_proxies(self, _lock, _killer, check_for_tmp=True):
+        if check_for_tmp and os.path.exists(os.path.join(gettempdir(),'py_http_proxies.txt')):
+            print 'Loading proxies from local tmp...'
+            
+            file = open(os.path.join(gettempdir(),'py_http_proxies.txt'),'r').readlines()
+            for entry in file:
+                entry = ( entry.split(":")[0], int(entry.split(":")[1]) )
+                _lock.acquire()
+                self.http_proxies.append( entry )
+                _lock.release()
+            
+            file = open(os.path.join(gettempdir(),'py_https_proxies.txt'),'r').readlines()
+            for entry in file:
+                entry = ( entry.split(":")[0], int(entry.split(":")[1]) )
+                _lock.acquire()
+                self.https_proxies.append( entry )
+                _lock.release()
+        else:
+            print 'Loading proxies from proxylist.txt ...'
+            
+            file = open('proxylist.txt','r').readlines()
+            dead = []
+            for index,entry in enumerate(file):
+                if _killer.locked(): break
+                self._print_progress( (index+1)/float(len(file)) )
+                entry = ( entry.split(":")[0], int(entry.split(":")[1]) )
+                alive,chaining = self._check_proxy( entry )
+                if alive:
+                    _lock.acquire()
+                    if chaining: self.https_proxies.append( entry )
+                    else: self.http_proxies.append( entry )
+                    _lock.release()
+                else: dead.append(entry)
+    
+            print "Dead proxies: "
+            for d in dead: print d[0]
         
-        file = open('proxylist.txt','r').readlines()
-        for index,entry in enumerate(file):
-            self._print_progress( (index+1)/float(len(file)) )
-            entry = (entry.split(":")[0],int(entry.split(":")[1]))
-            alive,chaining = self._check_proxy(
-                        entry
-                    )
-            if alive:
-                if chaining:
-                    self.https_proxies.append( entry )
-                else:
-                    self.http_proxies.append( entry )
-        print len(self.https_proxies),' HTTPS proxies'
+            log = open(os.path.join(gettempdir(),'py_http_proxies.txt'),'w')
+            _lock.acquire()
+            for p in self.http_proxies:
+                log.write('%s:%d\n' % p)
+            _lock.release()
+            log.close()
+        
+            log = open(os.path.join(gettempdir(),'py_https_proxies.txt'),'w')
+            _lock.acquire()
+            for p in self.https_proxies:
+                log.write('%s:%d\n' % p)
+            _lock.release()
+            log.close()
+        
+        _lock.acquire()
+        print len(self.https_proxies),' HTTPS proxies with chain support'
         print len(self.http_proxies),' HTTP proxies'
-            
+        _lock.release()
         
-    def _test_CONNECT(self, test_server='www.vg.no', _level=1):
+    def _test_CONNECT(self, _socket, test_server='www.vg.no'):
         if self.is_connected:
-            self._socket.sendall("CONNECT %s HTTP/1.0\r\n\r\n" % test_server)
-            
+            _socket.setblocking(0)
             try:
-                resp = self._socket.recv(1)
-                while resp.find("\r\n\r\n")==-1:
-                    resp = resp + self._socket.recv(1)
-                statusline = resp.splitlines()[0].split(" ",2)
-            except socket.error:
-                return False
-        
-            try:
-                statuscode = int(statusline[1])
-                return (statuscode == 200)
-            except ValueError, e:
-                print 'ERROR chaining: - ',e
-                self._socket.close()
+                _socket.sendall("CONNECT %s HTTP/1.0\r\n\r\n" % test_server )
+                ready = select.select([_socket], [], [], 4)
+                if ready[0]:
+                    resp = _socket.recv(1)
+                    while resp.find("\r\n\r\n")==-1:
+                        tmp = resp
+                        resp = resp + _socket.recv(1)
+                        if tmp == resp: raise socket.error
+                    statusline = resp.splitlines()[0].split(" ",2)
+                
+                    statuscode = int(statusline[1])
+                    return (statuscode == 200)
+            except socket.error: pass
+            except ValueError, e: print 'ERROR chaining: ',e
         return False
     
-    def _test_alive(self, server):
+    def _test_alive(self, _socket, server):
         self.is_connected = False
-        self._socket.settimeout(1.5)
         try:
-            self._socket.connect(server)
+            _socket.connect(server)
             self.is_connected = True
-        except (socket.timeout, socket.error):
-            return False
+        except (socket.timeout, socket.error): return False
         return True
-        
     
-    def _check_proxy(self, server):
+    def _check_proxy(self, server, _no_chain=False):
         self._socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+        self._socket.settimeout(1.5)
         
-        alive = self._test_alive(server)
-        chaining = self._test_CONNECT()
+        if _no_chain: return self._test_alive(self._socket, server)
+        
+        alive = self._test_alive(self._socket, server)
+        chaining = self._test_CONNECT(self._socket)
 
         self._socket.close()
         return (alive, chaining)
@@ -89,8 +128,10 @@ class ProxyManager():
         return random_proxy
     
     def get_sslproxy(self, count=1):
-        if count <= 0: return [ ]
         self.lock.acquire()
+        
+        if count <= 0: return [ ]
+        if count > len(self.https_proxies): count = len(self.https_proxies)
         
         random_proxy = [self.https_proxies.pop() for i in range(count)]
         self.https_proxies.extendleft(random_proxy)
@@ -98,3 +139,14 @@ class ProxyManager():
         
         self.lock.release()
         return random_proxy
+    
+    def remove_proxy(self, proxy):
+        self.lock.acquire()
+        for i,p in enumerate(self.https_proxies):
+            if proxy[0] == p[0]: self.https_proxies.remove(p)
+        for i,p in enumerate(self.http_proxies):
+            if proxy[0] == p[0]: self.http_proxies.remove(p)
+        self.lock.release()
+    
+    def terminate(self):
+        self.killer.acquire()

@@ -7,12 +7,13 @@ from socket import socket, timeout as TimeoutException
 from proxy_socket import ProxySocket
 
 DEBUG = False
-CHAIN = 2
 
 class ProxiedRequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
         self.connect_through_ssl = False
+        self._proxy_fetcher = server.proxy_fetcher
+        self.CHAIN = server.CHAIN
         BaseHTTPRequestHandler.__init__(self, request, client_address, server)
     
     def _connect_to_host(self):
@@ -34,7 +35,7 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
                                 )
                             )
         # Create a pipe to the remote server
-        self._pipe_socket = ProxySocket( use_ssl=self.connect_through_ssl, chainlength=MAX_CHAIN )
+        self._pipe_socket = ProxySocket( self._proxy_fetcher, chainlength=self.CHAIN, use_ssl=self.connect_through_ssl )
         self._pipe_socket.connect( (self.hostname, int(self.port)) )
 
         # Wrap socket if SSL is required
@@ -100,3 +101,10 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
     
     def do_POST(self):
         self.do_RELAY()
+    
+    def finish(self):
+        if DEBUG: print 'DEBUG: Closing a pipe.'
+        try:
+            self._pipe_socket.close()
+            BaseHTTPRequestHandler.finish(self)
+        except Exception: pass
