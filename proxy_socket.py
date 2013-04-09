@@ -1,9 +1,9 @@
 import socket, sys
-from proxier import ProxyFetcher
+from proxier import ProxyManager
 
 DEBUG = True
 
-proxy_fetcher = ProxyFetcher()
+proxy_fetcher = ProxyManager()
 _socket = socket.socket
 
 class ProxySocket(socket.socket):

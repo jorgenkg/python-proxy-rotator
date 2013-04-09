@@ -1,12 +1,13 @@
 from BaseHTTPServer import BaseHTTPRequestHandler
 from urlparse import urlparse, urlunparse, ParseResult
 from httplib import HTTPResponse
-import os
+import os, random
 from ssl import wrap_socket, PROTOCOL_TLSv1
 from socket import socket, timeout as TimeoutException
 from proxy_socket import ProxySocket
 
 DEBUG = False
+CHAIN = 2
 
 class ProxiedRequestHandler(BaseHTTPRequestHandler):
 
@@ -33,7 +34,7 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
                                 )
                             )
         # Create a pipe to the remote server
-        self._pipe_socket = ProxySocket( use_ssl=self.connect_through_ssl, chainlength=0 )
+        self._pipe_socket = ProxySocket( use_ssl=self.connect_through_ssl, chainlength=MAX_CHAIN )
         self._pipe_socket.connect( (self.hostname, int(self.port)) )
 
         # Wrap socket if SSL is required
