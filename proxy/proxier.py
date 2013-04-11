@@ -11,7 +11,8 @@ class ProxyManager():
         self.https_proxies = collections.deque()
         
         # load from file
-        threading.Thread( target=self._load_proxies, args=(self.lock,self.killer,check_for_tmp)).start()
+        #threading.Thread( target=self._load_proxies, args=(self.lock,self.killer,check_for_tmp)).start()
+        self._load_proxies(self.lock,self.killer,check_for_tmp)
     
     def _print_progress(self, fraction):
         size = 50
@@ -42,7 +43,7 @@ class ProxyManager():
         else:
             print 'Loading proxies from proxylist.txt ...'
             
-            file = open('proxylist.txt','r').readlines()
+            file = open(os.path.join(os.getcwd(),'proxy/proxylist.txt'),'r').readlines()
             dead = []
             for index,entry in enumerate(file):
                 if _killer.locked(): break

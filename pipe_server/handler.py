@@ -4,9 +4,7 @@ from httplib import HTTPResponse
 import os, random
 from ssl import wrap_socket, PROTOCOL_TLSv1
 from socket import socket, timeout as TimeoutException
-from proxy_socket import ProxySocket
-
-DEBUG = False
+from proxy.badgersocket import ProxySocket
 
 class ProxiedRequestHandler(BaseHTTPRequestHandler):
 
@@ -14,7 +12,10 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
         self.connect_through_ssl = False
         self._proxy_fetcher = server.proxy_fetcher
         self.CHAIN = server.CHAIN
-        BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+        self.DEBUG = server.DEBUG
+        try: BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+        except Exception as e: 
+            if server.DEBUG: print e
     
     def _connect_to_host(self):
         if self.connect_through_ssl:
@@ -35,7 +36,7 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
                                 )
                             )
         # Create a pipe to the remote server
-        self._pipe_socket = ProxySocket( self._proxy_fetcher, chainlength=self.CHAIN, use_ssl=self.connect_through_ssl )
+        self._pipe_socket = ProxySocket( self._proxy_fetcher, chainlength=self.CHAIN, use_ssl=self.connect_through_ssl, DEBUG=self.DEBUG )
         self._pipe_socket.connect( (self.hostname, int(self.port)) )
 
         # Wrap socket if SSL is required
@@ -103,8 +104,6 @@ class ProxiedRequestHandler(BaseHTTPRequestHandler):
         self.do_RELAY()
     
     def finish(self):
-        if DEBUG: print 'DEBUG: Closing a pipe.'
-        try:
-            self._pipe_socket.close()
-            BaseHTTPRequestHandler.finish(self)
+        try: self._pipe_socket.close()
         except Exception: pass
+        BaseHTTPRequestHandler.finish(self)
